@@ -1,0 +1,1 @@
+# Manejo de la ventana transparente (PyQt6)

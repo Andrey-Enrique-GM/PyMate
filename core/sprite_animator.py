@@ -1,0 +1,1 @@
+# Lógica para recortar y animar las hojas de sprites

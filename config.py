@@ -1,0 +1,1 @@
+# Carga de archivos de configuración (.txt o .json)
