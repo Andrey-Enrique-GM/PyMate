@@ -5,10 +5,10 @@ from core.window import PetWindow
 def main():
     app = QApplication(sys.argv)
 
-    # Ruta a la imagen PNG de Goldship dentro de la carpeta assets
-    sprite_path = "assets/SpriteSheet/GoldShip/idle.png" 
+    # Ruta a la animación idle (con 340 frames)
+    sprite_path = "assets/SpriteSheet/GoldShip/idle.png"
 
-    pet = PetWindow(sprite_path)
+    pet = PetWindow(sprite_path=sprite_path, total_frames=340, fps=60)
     pet.show()
 
     sys.exit(app.exec())

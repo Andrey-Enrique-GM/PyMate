@@ -1,15 +1,12 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
-from PyQt6.QtCore import Qt, QRect
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt, QTimer
+from core.sprite_animator import SpriteAnimator
 
 class PetWindow(QWidget):
-    def __init__(self, sprite_path: str):
+    def __init__(self, sprite_path: str, total_frames: int = 340, fps: int = 60):
         super().__init__()
-        
-        # Dimensiones extraídas del config.txt
-        self.frame_width = 350
-        self.frame_height = 350
 
+        # Configuración de la ventana transparente
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
@@ -24,21 +21,30 @@ class PetWindow(QWidget):
         self.label = QLabel(self)
         self.layout.addWidget(self.label)
 
-        self.set_sprite(sprite_path)
+        # Inicializar animador para 'idle'
+        self.animator = SpriteAnimator(
+            sprite_path=sprite_path,
+            total_frames=total_frames,
+            frame_width=350,
+            frame_height=350,
+            columns=10
+        )
+
+        # Configurar temporizador de reproducción (FPS)
+        interval_ms = int(1000 / fps)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_animation)
+        self.timer.start(interval_ms)
+
         self.drag_position = None
 
-    def set_sprite(self, image_path: str):
-        full_pixmap = QPixmap(image_path)
-        
-        if not full_pixmap.isNull():
-            # Recorta el cuadro inicial [X:0, Y:0, Ancho:350, Alto:350]
-            cropped_pixmap = full_pixmap.copy(QRect(0, 0, self.frame_width, self.frame_height))
-            
-            self.label.setPixmap(cropped_pixmap)
-            self.resize(self.frame_width, self.frame_height)
-        else:
-            print(f"Error cargando: {image_path}")
+    def update_animation(self):
+        pixmap = self.animator.get_next_frame()
+        if not pixmap.isNull():
+            self.label.setPixmap(pixmap)
+            self.resize(pixmap.size())
 
+    # --- Eventos para mover la ventana con el mouse ---
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
