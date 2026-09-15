@@ -3,12 +3,11 @@ from PyQt6.QtCore import Qt, QTimer, QPoint
 from core.sprite_animator import SpriteAnimator
 
 class PetWindow(QWidget):
-    def __init__(self, sprite_path: str, total_frames: int = 340, target_size: int = 230, fps: int = 24):
+    def __init__(self, sprite_path: str, total_frames: int, frame_width: int, frame_height: int, columns: int, target_size: int = 230, fps: int = 16):
         super().__init__()
 
         self.target_size = target_size
 
-        # Configurar la ventana transparente y flotante
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
@@ -20,21 +19,20 @@ class PetWindow(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
-        # Configuración del QLabel fija a 230px
         self.label = QLabel(self)
         self.label.setFixedSize(self.target_size, self.target_size)
-        self.label.setScaledContents(True)  # Escala la imagen original directo al marco
+        self.label.setScaledContents(True)
         self.layout.addWidget(self.label)
 
         self.resize(self.target_size, self.target_size)
 
-        # Animador
+        # Usamos las dimensiones exactas del personaje activo
         self.animator = SpriteAnimator(
             sprite_path=sprite_path,
             total_frames=total_frames,
-            frame_width=350,
-            frame_height=350,
-            columns=10
+            frame_width=frame_width,
+            frame_height=frame_height,
+            columns=columns
         )
 
         interval_ms = int(1000 / fps)
@@ -50,7 +48,6 @@ class PetWindow(QWidget):
         if not pixmap.isNull():
             self.label.setPixmap(pixmap)
 
-    # --- Eventos para arrastrar ---
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.is_dragging = True
