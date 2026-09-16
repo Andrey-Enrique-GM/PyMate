@@ -82,19 +82,29 @@ class PetWindow(QWidget):
         else:
             # En otro estado, ejecuta la animación activa mientras IDLE permanece pausado en su frame actual
             pixmap = self.action_animator.get_next_frame()
+            
+            # Si es la animación "click", verificamos si completó una vuelta completa
+            if self.current_state == "click":
+                # Cuando action_animator regresa al frame 0, es porque terminó todos sus cuadros
+                if self.action_animator.current_frame == 0:
+                    if self.underMouse():
+                        self.set_state("hover")
+                    else:
+                        self.set_state("idle")
+                    return
 
         if not pixmap.isNull():
             self.label.setPixmap(pixmap)
 
 
     def enterEvent(self, event):
-        if not self.is_dragging:
+        if not self.is_dragging and self.current_state != "click":
             self.set_state("hover")
         super().enterEvent(event)
 
 
     def leaveEvent(self, event):
-        if not self.is_dragging:
+        if not self.is_dragging and self.current_state != "click":
             self.set_state("idle")
         super().leaveEvent(event)
 
@@ -104,6 +114,10 @@ class PetWindow(QWidget):
             self.is_dragging = True
             self.drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             self.set_state("grab")
+            event.accept()
+            
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.set_state("click")
             event.accept()
 
 
@@ -120,4 +134,8 @@ class PetWindow(QWidget):
                 self.set_state("hover")
             else:
                 self.set_state("idle")
+            event.accept()
+            
+        elif event.button() == Qt.MouseButton.RightButton:
+            # Ignora la soltada del clic derecho para dejar que click complete sus cuadros en update_animation
             event.accept()
