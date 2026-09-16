@@ -1,28 +1,22 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 from core.window import PetWindow
+from core.character import Character
 from config import ConfigManager
+
+
 
 def main():
     app = QApplication(sys.argv)
 
     cfg = ConfigManager()
+    active_char_name = cfg.active_character
 
-    sprite_path = cfg.get_sprite_path("idle")
-    
-    # Extraer parámetros de la config específica del personaje
-    total_frames = int(cfg.character_config.get("IDLE", 340))
-    frame_width = int(cfg.character_config.get("WIDTH", 350))
-    frame_height = int(cfg.character_config.get("HEIGHT", 350))
-    columns = int(cfg.character_config.get("COLUMN", 10))
+    # Instancia el personaje activo
+    character = Character(character_name=active_char_name)
 
-    # Fijamos los FPS a 35 para mantener la fluidez en cualquier personaje
     pet = PetWindow(
-        sprite_path=sprite_path, 
-        total_frames=total_frames,
-        frame_width=frame_width,
-        frame_height=frame_height,
-        columns=columns,
+        character=character,
         target_size=230, 
         fps=35
     )
@@ -30,5 +24,7 @@ def main():
 
     sys.exit(app.exec())
 
+
 if __name__ == "__main__":
     main()
+    
