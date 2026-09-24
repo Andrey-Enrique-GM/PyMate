@@ -76,35 +76,65 @@ class PetWindow(QWidget):
             self.action_animator = None
         else:
             anim_data = self.character.get_animation_data(self.current_state)
-            self.action_animator = SpriteAnimator(
-                sprite_path=anim_data["path"],
-                total_frames=anim_data["total_frames"],
-                frame_width=anim_data["frame_width"],
-                frame_height=anim_data["frame_height"],
-                columns=anim_data["columns"]
-            )
+            if anim_data and anim_data.get("path"):
+                self.action_animator = SpriteAnimator(
+                    sprite_path=anim_data["path"],
+                    total_frames=anim_data["total_frames"],
+                    frame_width=anim_data["frame_width"],
+                    frame_height=anim_data["frame_height"],
+                    columns=anim_data["columns"]
+                )
 
 
     def update_animation(self):
         if self.current_state == "idle":
             pixmap = self.idle_animator.get_next_frame()
         else:
-            pixmap = self.action_animator.get_next_frame()
+            if self.action_animator:
+                pixmap = self.action_animator.get_next_frame()
+            else:
+                pixmap = self.idle_animator.get_next_frame()
             
-            if self.current_state == "click":
+            if self.current_state == "click" and self.action_animator:
                 if self.action_animator.current_frame == 0:
-                    if self.underMouse():
+                    if self.is_following:
+                        self.set_state("runidle")
+                    elif self.underMouse():
                         self.set_state("hover")
                     else:
                         self.set_state("idle")
                     return
 
-        if not pixmap.isNull():
+        if pixmap and not pixmap.isNull():
             self.label.setPixmap(pixmap)
 
 
+    def get_run_direction(self, dx: float, dy: float) -> str:
+        """Determina cuál de las 8 direcciones usar según las deltas dx y dy."""
+        angle = math.degrees(math.atan2(dy, dx))
+
+        if -22.5 <= angle < 22.5:
+            return "runright"
+        elif 22.5 <= angle < 67.5:
+            return "downright"
+        elif 67.5 <= angle < 112.5:
+            return "rundown"
+        elif 112.5 <= angle < 157.5:
+            return "downleft"
+        elif angle >= 157.5 or angle < -157.5:
+            return "runleft"
+        elif -157.5 <= angle < -112.5:
+            return "upleft"
+        elif -112.5 <= angle < -67.5:
+            return "runup"
+        elif -67.5 <= angle < -22.5:
+            return "upright"
+
+        return "rundown"
+
+
     def follow_cursor(self):
-        """Mueve a la mascota hacia el cursor a velocidad constante hasta alcanzar el radio."""
+        """Mueve a la mascota y actualiza su animación según la distancia al cursor."""
         if not self.is_following:
             return
 
@@ -118,6 +148,10 @@ class PetWindow(QWidget):
 
         # Si está fuera del radio permitido, camina hacia el cursor
         if distance > self.follow_radius:
+            # Selecciona la animación de carrera apropiada
+            run_anim = self.get_run_direction(dx, dy)
+            self.set_state(run_anim)
+
             step_x = (dx / distance) * self.speed
             step_y = (dy / distance) * self.speed
 
@@ -125,6 +159,9 @@ class PetWindow(QWidget):
             new_y = int(self.y() + step_y)
 
             self.move(new_x, new_y)
+        else:
+            # Al llegar dentro del radio en modo cacería, entra en reposo de carrera (runidle)
+            self.set_state("runidle")
 
 
     def enterEvent(self, event):
@@ -145,7 +182,7 @@ class PetWindow(QWidget):
             
             if self.is_following:
                 self.follow_timer.start(16)
-                self.set_state("idle")
+                self.set_state("runidle")
             else:
                 self.follow_timer.stop()
                 if self.underMouse():
