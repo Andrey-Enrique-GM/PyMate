@@ -198,18 +198,10 @@ class PetWindow(QWidget):
             return
 
         if event.button() == Qt.MouseButton.LeftButton:
-            self.is_following = not self.is_following
-            
-            if self.is_following:
-                self.follow_timer.start(16)
-                self.set_state("runidle")
-            else:
-                self.follow_timer.stop()
-                if self.underMouse():
-                    self.set_state("hover")
-                else:
-                    self.set_state("idle")
-                    
+            self.is_dragging = True
+            self.has_dragged = False
+            # Guarda la posición relativa de la ventana con respecto al cursor
+            self.drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             event.accept()
             
         elif event.button() == Qt.MouseButton.RightButton:
@@ -219,8 +211,14 @@ class PetWindow(QWidget):
 
     def mouseMoveEvent(self, event):
         """ Maneja el movimiento del personaje cuando se arrastra """
-        if self.is_dragging and event.buttons() & Qt.MouseButton.LeftButton and not self.is_following:
-            self.move(event.globalPosition().toPoint() - self.drag_offset)
+        if self.is_dragging and (event.buttons() & Qt.MouseButton.LeftButton) and not self.is_following:
+            delta = event.globalPosition().toPoint() - self.drag_offset
+            # Si el cursor se movió más de 3 píxeles, se considera un arrastre real
+            if (event.globalPosition().toPoint() - (self.frameGeometry().topLeft() + self.drag_offset)).manhattanLength() > 3:
+                self.has_dragged = True
+                self.set_state("grab")
+            
+            self.move(delta)
             event.accept()
 
 
@@ -228,7 +226,28 @@ class PetWindow(QWidget):
         """ Maneja el evento de soltar el clic izquierdo """
         if event.button() == Qt.MouseButton.LeftButton:
             self.is_dragging = False
+            
+            if self.has_dragged:
+                if self.underMouse():
+                    self.set_state("hover")
+                else:
+                    self.set_state("idle")
+            else:
+                # Solo si fue un clic sin movimiento, activa el modo cacería
+                self.is_following = not self.is_following
+                
+                if self.is_following:
+                    self.follow_timer.start(16)
+                    self.set_state("runidle")
+                else:
+                    self.follow_timer.stop()
+                    if self.underMouse():
+                        self.set_state("hover")
+                    else:
+                        self.set_state("idle")
+                        
             event.accept()
             
         elif event.button() == Qt.MouseButton.RightButton:
             event.accept()
+    
