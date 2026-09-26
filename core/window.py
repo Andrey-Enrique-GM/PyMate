@@ -1,5 +1,5 @@
 import math
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QApplication
 from PyQt6.QtCore import Qt, QTimer, QPoint
 from PyQt6.QtGui import QCursor
 from core.sprite_animator import SpriteAnimator
@@ -13,7 +13,7 @@ class PetWindow(QWidget):
 
         self.character = character
         self.target_size = target_size
-        self.current_state = "idle"
+        self.current_state = None  # Se inicializa en None para permitir que set_state("intro") funcione
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
@@ -46,6 +46,7 @@ class PetWindow(QWidget):
 
         # Animador para acciones secundarias
         self.action_animator = None
+        self.set_state("intro")
 
         # Temporizador de renderizado de animación
         interval_ms = int(1000 / fps)
@@ -67,6 +68,7 @@ class PetWindow(QWidget):
 
 
     def set_state(self, new_state: str):
+        """ Cambia el estado de la mascota """
         if self.current_state == new_state:
             return
             
@@ -86,7 +88,15 @@ class PetWindow(QWidget):
                 )
 
 
+    def play_outro_and_exit(self):
+        """Detiene cualquier acción y reproduce la despedida antes de salir."""
+        self.is_following = False
+        self.follow_timer.stop()
+        self.set_state("outro")
+
+
     def update_animation(self):
+        """ Actualiza la animación de la mascota """
         if self.current_state == "idle":
             pixmap = self.idle_animator.get_next_frame()
         else:
@@ -95,8 +105,15 @@ class PetWindow(QWidget):
             else:
                 pixmap = self.idle_animator.get_next_frame()
             
-            if self.current_state == "click" and self.action_animator:
-                if self.action_animator.current_frame == 0:
+            # Finalización de animaciones únicas (intro, outro, click)
+            if self.action_animator and self.action_animator.current_frame == 0:
+                if self.current_state == "intro":
+                    self.set_state("idle")
+                    return
+                elif self.current_state == "outro":
+                    QApplication.quit()  # Cierra la aplicación de inmediato al terminar la animación de despedida
+                    return
+                elif self.current_state == "click":
                     if self.is_following:
                         self.set_state("runidle")
                     elif self.underMouse():
@@ -110,7 +127,7 @@ class PetWindow(QWidget):
 
 
     def get_run_direction(self, dx: float, dy: float) -> str:
-        """Determina cuál de las 8 direcciones usar según las deltas dx y dy."""
+        """ Determina cuál de las 8 direcciones usar según las deltas dx y dy """
         angle = math.degrees(math.atan2(dy, dx))
 
         if -22.5 <= angle < 22.5:
@@ -134,21 +151,18 @@ class PetWindow(QWidget):
 
 
     def follow_cursor(self):
-        """Mueve a la mascota y actualiza su animación según la distancia al cursor."""
-        if not self.is_following:
+        """ Mueve a la mascota y actualiza su animación según la distancia al cursor """
+        if not self.is_following or self.current_state in ["intro", "outro"]:
             return
 
         cursor_pos = QCursor.pos()
         center_pos = self.geometry().center()
 
-        # Distancia entre el centro de la mascota y el cursor
         dx = cursor_pos.x() - center_pos.x()
         dy = cursor_pos.y() - center_pos.y()
         distance = math.hypot(dx, dy)
 
-        # Si está fuera del radio permitido, camina hacia el cursor
         if distance > self.follow_radius:
-            # Selecciona la animación de carrera apropiada
             run_anim = self.get_run_direction(dx, dy)
             self.set_state(run_anim)
 
@@ -165,18 +179,24 @@ class PetWindow(QWidget):
 
 
     def enterEvent(self, event):
-        if not self.is_dragging and self.current_state != "click" and not self.is_following:
+        """ Maneja el evento de entrar al área del personaje """
+        if not self.is_dragging and self.current_state not in ["click", "intro", "outro"] and not self.is_following:
             self.set_state("hover")
         super().enterEvent(event)
 
 
     def leaveEvent(self, event):
-        if not self.is_dragging and self.current_state != "click" and not self.is_following:
+        """ Maneja el evento de salir del área del personaje """
+        if not self.is_dragging and self.current_state not in ["click", "intro", "outro"] and not self.is_following:
             self.set_state("idle")
         super().leaveEvent(event)
 
 
     def mousePressEvent(self, event):
+        """ Maneja el clic izquierdo para seguir al cursor y el clic derecho para obtener un snack """
+        if self.current_state in ["intro", "outro"]:
+            return
+
         if event.button() == Qt.MouseButton.LeftButton:
             self.is_following = not self.is_following
             
@@ -198,12 +218,14 @@ class PetWindow(QWidget):
 
 
     def mouseMoveEvent(self, event):
+        """ Maneja el movimiento del personaje cuando se arrastra """
         if self.is_dragging and event.buttons() & Qt.MouseButton.LeftButton and not self.is_following:
             self.move(event.globalPosition().toPoint() - self.drag_offset)
             event.accept()
 
 
     def mouseReleaseEvent(self, event):
+        """ Maneja el evento de soltar el clic izquierdo """
         if event.button() == Qt.MouseButton.LeftButton:
             self.is_dragging = False
             event.accept()

@@ -18,25 +18,25 @@ def main():
     window = PetWindow(character)
     window.show()
 
-    # Obtiene el primer frame de IDLE para usarlo como icono de la bandeja
+    # Icono para la bandeja del sistema
     idle_data = character.get_animation_data("idle")
     full_pixmap = QPixmap(idle_data["path"])
     
     if not full_pixmap.isNull():
-        # Recortamos exactamente el primer cuadro (columna 0, fila 0)
         icon_pixmap = full_pixmap.copy(0, 0, idle_data["frame_width"], idle_data["frame_height"])
         tray_icon = QIcon(icon_pixmap)
     else:
         tray_icon = QIcon()
 
-    # Crea el SystemTrayIcon en la barra de tareas
     tray = QSystemTrayIcon(tray_icon, app)
     tray.setToolTip(f"PyMate - {character.name}")
 
-    # Crea el menú contextual (Clic derecho en el icono)
+    # Menú del tray icon
     menu = QMenu()
     close_action = menu.addAction("Cerrar")
-    close_action.triggered.connect(app.quit)
+    
+    # Reproduce la animación de despedida al cerrar
+    close_action.triggered.connect(window.play_outro_and_exit)
 
     tray.setContextMenu(menu)
     tray.show()
