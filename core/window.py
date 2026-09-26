@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt, QTimer, QPoint
 from PyQt6.QtGui import QCursor
 from core.sprite_animator import SpriteAnimator
 from core.character import Character
+from core.auto_walker import AutoWalker
 
 
 
@@ -60,8 +61,18 @@ class PetWindow(QWidget):
         self.follow_timer.timeout.connect(self.follow_cursor)
         
         # Parámetros de velocidad constante y radio de detención
-        self.speed = 5  # Píxeles por paso
+        self.speed = 5  # Velocidad de carrera (píxeles por paso)
+        self.walk_speed = 0.5  # Velocidad de caminata tranquila (ajustable)
         self.follow_radius = 120.0  # Radio para detenerse antes de tocar el cursor
+        
+        # Módulo de caminata autónoma con la velocidad de la ventana
+        self.auto_walker = AutoWalker(
+            self, 
+            min_rest_sec=20, 
+            max_rest_sec=40, 
+            walk_duration_sec=3.5, 
+            speed=self.walk_speed
+        )
 
         self.is_dragging = False
         self.drag_offset = QPoint()
@@ -109,6 +120,7 @@ class PetWindow(QWidget):
             if self.action_animator and self.action_animator.current_frame == 0:
                 if self.current_state == "intro":
                     self.set_state("idle")
+                    self.auto_walker.schedule_next_walk()  # Inicia el ciclo del vagabundo autónomo
                     return
                 elif self.current_state == "outro":
                     QApplication.quit()  # Cierra la aplicación de inmediato al terminar la animación de despedida
@@ -250,4 +262,3 @@ class PetWindow(QWidget):
             
         elif event.button() == Qt.MouseButton.RightButton:
             event.accept()
-    
