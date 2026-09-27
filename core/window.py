@@ -125,7 +125,7 @@ class PetWindow(QWidget):
                 elif self.current_state == "outro":
                     QApplication.quit()  # Cierra la aplicación de inmediato al terminar la animación de despedida
                     return
-                elif self.current_state == "click":
+                elif self.current_state in ["click", "pat"]:
                     if self.is_following:
                         self.set_state("runidle")
                     elif self.underMouse():
@@ -245,18 +245,30 @@ class PetWindow(QWidget):
                 else:
                     self.set_state("idle")
             else:
-                # Solo si fue un clic sin movimiento, activa el modo cacería
-                self.is_following = not self.is_following
-                
-                if self.is_following:
-                    self.follow_timer.start(16)
-                    self.set_state("runidle")
+                # Clic simple, verificar la zona según la posición Y local del clic
+                click_y = event.position().y()
+                head_threshold = self.height() * 0.35  # Tercio superior (35% superior)
+
+                if click_y <= head_threshold:
+                    # Clic en la CABEZA, mimos
+                    if self.is_following:
+                        self.is_following = False
+                        self.follow_timer.stop()
+                    
+                    self.set_state("pat")
                 else:
-                    self.follow_timer.stop()
-                    if self.underMouse():
-                        self.set_state("hover")
+                    # Clic en el CUERPO, modo Persecución
+                    self.is_following = not self.is_following
+                    
+                    if self.is_following:
+                        self.follow_timer.start(16)
+                        self.set_state("runidle")
                     else:
-                        self.set_state("idle")
+                        self.follow_timer.stop()
+                        if self.underMouse():
+                            self.set_state("hover")
+                        else:
+                            self.set_state("idle")
                         
             event.accept()
             
