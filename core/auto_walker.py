@@ -35,6 +35,20 @@ class AutoWalker(QObject):
         self.is_walking = False
 
 
+    def get_walk_direction(self, dx: float, dy: float) -> str:
+        """ Determina la animación de caminata según el ángulo de dirección en 4 ejes """
+        angle = math.degrees(math.atan2(dy, dx))
+
+        if -45 <= angle < 45:
+            return "walkright"
+        elif 45 <= angle < 135:
+            return "walkdown"
+        elif angle >= 135 or angle < -135:
+            return "walkleft"
+        else:
+            return "walkup"
+
+
     def schedule_next_walk(self):
         """ Programa el próximo paseo con un intervalo de descanso aleatorio """
         if not self.is_walking:
@@ -43,7 +57,7 @@ class AutoWalker(QObject):
 
 
     def start_walk(self):
-        """ Calcula una dirección aleatoria y comienza a caminar """
+        """ Calcula una dirección aleatoria, asigna la animación y comienza a caminar """
         if self.window.current_state != "idle" or self.window.is_following or self.window.is_dragging:
             self.schedule_next_walk()
             return
@@ -66,13 +80,17 @@ class AutoWalker(QObject):
         if future_y < 0 or future_y + self.window.height() > screen_geo.height():
             self.dy *= -1
 
+        # Asignar la animación de caminata según la dirección calculada
+        walk_state = self.get_walk_direction(self.dx, self.dy)
+        self.window.set_state(walk_state)
+
         self.is_walking = True
-        self.walk_timer.start(16)  # ~60 FPS para movimiento continuo
+        self.walk_timer.start(16)
         self.duration_timer.start(self.walk_duration_ms)
 
 
     def _step(self):
-        """ Aplica un paso de movimiento usando precisión flotante """
+        """ Aplica un paso de movimiento """
         if not self.is_walking:
             return
 
@@ -86,7 +104,7 @@ class AutoWalker(QObject):
 
 
     def stop_walk(self):
-        """ Detiene el movimiento y restablece el descanso """
+        """ Detiene el movimiento y restablece el descanso (idle) """
         self.is_walking = False
         self.walk_timer.stop()
         self.duration_timer.stop()
