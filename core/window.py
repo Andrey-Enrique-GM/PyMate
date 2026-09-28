@@ -75,6 +75,7 @@ class PetWindow(QWidget):
         )
 
         self.is_dragging = False
+        self.has_dragged = False
         self.drag_offset = QPoint()
 
 
@@ -116,7 +117,7 @@ class PetWindow(QWidget):
             else:
                 pixmap = self.idle_animator.get_next_frame()
             
-            # Finalización de animaciones únicas (intro, outro, click)
+            # Finalización de animaciones únicas (intro, outro, click, pat, emote1)
             if self.action_animator and self.action_animator.current_frame == 0:
                 if self.current_state == "intro":
                     self.set_state("idle")
@@ -125,7 +126,7 @@ class PetWindow(QWidget):
                 elif self.current_state == "outro":
                     QApplication.quit()  # Cierra la aplicación de inmediato al terminar la animación de despedida
                     return
-                elif self.current_state in ["click", "pat"]:
+                elif self.current_state in ["click", "pat", "emote1"]:
                     if self.is_following:
                         self.set_state("runidle")
                     elif self.underMouse():
@@ -191,21 +192,21 @@ class PetWindow(QWidget):
 
 
     def enterEvent(self, event):
-        """ Maneja el evento de entrar al área del personaje """
-        if not self.is_dragging and self.current_state not in ["click", "intro", "outro"] and not self.is_following:
+        """ Solo entra a hover si está en idle o runidle puro, evitando interrumpir animaciones activas """
+        if not self.is_dragging and self.current_state in ["idle", "runidle"] and not self.is_following:
             self.set_state("hover")
         super().enterEvent(event)
 
 
     def leaveEvent(self, event):
-        """ Maneja el evento de salir del área del personaje """
-        if not self.is_dragging and self.current_state not in ["click", "intro", "outro"] and not self.is_following:
+        """ Solo sale de hover si está en hover puro, evitando interrumpir animaciones activas """
+        if not self.is_dragging and self.current_state == "hover" and not self.is_following:
             self.set_state("idle")
         super().leaveEvent(event)
 
 
     def mousePressEvent(self, event):
-        """ Maneja el clic izquierdo para seguir al cursor y el clic derecho para obtener un snack """
+        """ Maneja el clic izquierdo y el clic derecho """
         if self.current_state in ["intro", "outro"]:
             return
 
@@ -245,19 +246,31 @@ class PetWindow(QWidget):
                 else:
                     self.set_state("idle")
             else:
-                # Clic simple, verificar la zona según la posición Y local del clic
+                # Clic simple en el personaje
+                click_x = event.position().x()
                 click_y = event.position().y()
-                head_threshold = self.height() * 0.35  # Tercio superior (35% superior)
+                
+                cheek_zone_x = self.width() * 0.35   # Lado izquierdo del rostro / accesorio
+                head_zone_y = self.height() * 0.45   # Altura de la cabeza
 
-                if click_y <= head_threshold:
-                    # Clic en la CABEZA, mimos
+                if click_x <= cheek_zone_x and click_y <= head_zone_y:
+                    # Clic en la mejilla/accesorio izquierdo, EMOTE1
+                    if self.is_following:
+                        self.is_following = False
+                        self.follow_timer.stop()
+                    
+                    self.set_state("emote1")
+
+                elif click_y <= head_zone_y:
+                    # Clic en la Cabeza, PAT
                     if self.is_following:
                         self.is_following = False
                         self.follow_timer.stop()
                     
                     self.set_state("pat")
+
                 else:
-                    # Clic en el CUERPO, modo Persecución
+                    # Clic en el Cuerpo, Persecución
                     self.is_following = not self.is_following
                     
                     if self.is_following:
