@@ -250,23 +250,25 @@ class PetWindow(QWidget):
                 click_x = event.position().x()
                 click_y = event.position().y()
                 
-                cheek_zone_x = self.width() * 0.35   # Lado izquierdo del rostro / accesorio
+                left_zone_x = self.width() * 0.35    # Lado izquierdo (mejilla/accesorio)
+                right_zone_x = self.width() * 0.65   # Lado derecho (mejilla/accesorio)
                 head_zone_y = self.height() * 0.45   # Altura de la cabeza
 
-                if click_x <= cheek_zone_x and click_y <= head_zone_y:
+                # Si venía de un emote u otro estado y se da clic, detiene la persecución previa
+                if self.is_following:
+                    self.is_following = False
+                    self.follow_timer.stop()
+
+                if click_x <= left_zone_x and click_y <= head_zone_y:
                     # Clic en la mejilla/accesorio izquierdo, EMOTE1
-                    if self.is_following:
-                        self.is_following = False
-                        self.follow_timer.stop()
-                    
                     self.set_state("emote1")
+
+                elif click_x >= right_zone_x and click_y <= head_zone_y:
+                    # Clic en la mejilla/accesorio derecho, EMOTE3
+                    self.set_state("emote3")
 
                 elif click_y <= head_zone_y:
                     # Clic en la Cabeza, PAT
-                    if self.is_following:
-                        self.is_following = False
-                        self.follow_timer.stop()
-                    
                     self.set_state("pat")
 
                 else:
