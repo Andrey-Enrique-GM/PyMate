@@ -2,6 +2,7 @@ import math
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QApplication
 from PyQt6.QtCore import Qt, QTimer, QPoint
 from PyQt6.QtGui import QCursor
+from config import load_sleep_time
 from core.sprite_animator import SpriteAnimator
 from core.character import Character
 from core.auto_walker import AutoWalker
@@ -55,6 +56,13 @@ class PetWindow(QWidget):
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(interval_ms)
 
+        # Configuración del temporizador de inactividad para SLEEP
+        self.sleep_timeout_ms = load_sleep_time() * 1000
+        self.inactivity_timer = QTimer(self)
+        self.inactivity_timer.setSingleShot(True)
+        self.inactivity_timer.timeout.connect(self.enter_sleep_state)
+        self.reset_inactivity_timer()
+
         # Configuración de movimiento
         self.is_following = False
         self.follow_timer = QTimer(self)
@@ -77,6 +85,22 @@ class PetWindow(QWidget):
         self.is_dragging = False
         self.has_dragged = False
         self.drag_offset = QPoint()
+
+
+    def reset_inactivity_timer(self):
+        """ Reinicia el contador de inactividad """
+        if self.current_state == "sleep":
+            self.set_state("idle")
+            if hasattr(self, 'auto_walker'):
+                self.auto_walker.schedule_next_walk()
+        self.inactivity_timer.start(self.sleep_timeout_ms)
+
+
+    def enter_sleep_state(self):
+        """ Activa el estado de descanso profundo (sleep) """
+        if not self.is_following and not self.is_dragging:
+            self.auto_walker.cancel() # Pausa la caminata autónoma
+            self.set_state("sleep")
 
 
     def set_state(self, new_state: str):
@@ -193,6 +217,7 @@ class PetWindow(QWidget):
 
     def enterEvent(self, event):
         """ Solo entra a hover si está en idle o runidle puro, evitando interrumpir animaciones activas """
+        self.reset_inactivity_timer() # Reinicia el contador con hover
         if not self.is_dragging and self.current_state in ["idle", "runidle"] and not self.is_following:
             self.set_state("hover")
         super().enterEvent(event)
@@ -207,6 +232,7 @@ class PetWindow(QWidget):
 
     def mousePressEvent(self, event):
         """ Maneja el clic izquierdo y el clic derecho """
+        self.reset_inactivity_timer() # Reinicia el contador con clic
         if self.current_state in ["intro", "outro"]:
             return
 
@@ -224,6 +250,7 @@ class PetWindow(QWidget):
 
     def mouseMoveEvent(self, event):
         """ Maneja el movimiento del personaje cuando se arrastra """
+        self.reset_inactivity_timer() # Reinicia el contador con grab
         if self.is_dragging and (event.buttons() & Qt.MouseButton.LeftButton) and not self.is_following:
             delta = event.globalPosition().toPoint() - self.drag_offset
             # Si el cursor se movió más de 3 píxeles, se considera un arrastre real

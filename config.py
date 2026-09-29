@@ -41,4 +41,17 @@ class ConfigManager:
 
     def get_sprite_path(self, animation_name: str = "idle") -> str:
         return os.path.join(self.assets_path, "SpriteSheet", self.active_character, f"{animation_name}.png")
-        
+
+
+def load_sleep_time():
+    config_path = os.path.join("assets", "config.txt")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("SLEEP_TIME"):
+                    try:
+                        return int(line.split("=")[1].strip())
+                    except ValueError:
+                        pass
+    return 400  # Valor por defecto si no lo encuentra
