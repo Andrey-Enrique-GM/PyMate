@@ -6,6 +6,7 @@ from config import load_sleep_time
 from core.sprite_animator import SpriteAnimator
 from core.character import Character
 from core.auto_walker import AutoWalker
+from core.sound_manager import SoundManager
 
 
 
@@ -16,6 +17,8 @@ class PetWindow(QWidget):
         self.character = character
         self.target_size = target_size
         self.current_state = None  # Se inicializa en None para permitir que set_state("intro") funcione
+
+        self.sound_manager = SoundManager(self.character.name)
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
@@ -104,11 +107,14 @@ class PetWindow(QWidget):
 
 
     def set_state(self, new_state: str):
-        """ Cambia el estado de la mascota """
+        """ Cambia el estado de la mascota y reproduce el sonido correspondiente """
         if self.current_state == new_state:
             return
             
         self.current_state = new_state.lower()
+
+        # Reproducir el efecto de sonido (.wav)
+        self.sound_manager.play_sound(self.current_state)
 
         if self.current_state == "idle":
             self.action_animator = None
