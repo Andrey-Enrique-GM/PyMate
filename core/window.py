@@ -150,13 +150,16 @@ class PetWindow(QWidget):
                 elif self.current_state == "outro":
                     QApplication.quit()  # Cierra la aplicación de inmediato al terminar la animación de despedida
                     return
-                elif self.current_state in ["click", "pat", "emote1"]:
+                elif self.current_state in ["click", "pat", "emote1", "emote2"]:
                     if self.is_following:
                         self.set_state("runidle")
                     elif self.underMouse():
                         self.set_state("hover")
                     else:
                         self.set_state("idle")
+                    
+                    # Notifica al walker que programe la siguiente acción autónoma
+                    self.auto_walker.schedule_next_walk()
                     return
 
         if pixmap and not pixmap.isNull():

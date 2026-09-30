@@ -19,7 +19,7 @@ class AutoWalker(QObject):
         # Temporizadores
         self.rest_timer = QTimer(self)
         self.rest_timer.setSingleShot(True)
-        self.rest_timer.timeout.connect(self.start_walk)
+        self.rest_timer.timeout.connect(self.trigger_random_action) # Decidir acción por probabilidad
 
         self.walk_timer = QTimer(self)
         self.walk_timer.timeout.connect(self._step)
@@ -50,18 +50,38 @@ class AutoWalker(QObject):
 
 
     def schedule_next_walk(self):
-        """ Programa el próximo paseo con un intervalo de descanso aleatorio """
-        if not self.is_walking:
+        """ Programa el próximo evento si no se está caminando o arrastrando """
+        if not self.is_walking and not self.rest_timer.isActive():
             wait_time_ms = random.randint(self.min_rest * 1000, self.max_rest * 1000)
             self.rest_timer.start(wait_time_ms)
 
 
-    def start_walk(self):
-        """ Calcula una dirección aleatoria, asigna la animación y comienza a caminar """
-        if self.window.current_state != "idle" or self.window.is_following or self.window.is_dragging:
+    def trigger_random_action(self):
+        """ Elige aleatoriamente entre caminar o hacer uno de los 3 emotes según sus probabilidades """
+        # Permitimos cambiar de estado si está en "idle" o en el bucle continuo de "emote3"
+        valid_states = ["idle", "emote3"]
+        if self.window.current_state not in valid_states or self.window.is_following or self.window.is_dragging:
             self.schedule_next_walk()
             return
 
+        # Lista de acciones y sus pesos de probabilidad (Caminar: 2, Emotes: 1 cada uno)
+        actions = ["walk", "emote1", "emote2", "emote3"]
+        weights = [2, 1, 1, 1]
+
+        chosen_action = random.choices(actions, weights=weights, k=1)[0]
+
+        if chosen_action == "walk":
+            self.start_walk()
+        else:
+            # Ejecuta el emote elegido
+            self.window.set_state(chosen_action)
+            # Si es emote3 (bucle), programa el temporizador para que en el futuro decida la siguiente acción
+            if chosen_action == "emote3":
+                self.schedule_next_walk()
+
+
+    def start_walk(self):
+        """ Calcula una dirección aleatoria, asigna la animación y comienza a caminar """
         angle = random.uniform(0, 2 * math.pi)
         self.dx = math.cos(angle) * self.speed
         self.dy = math.sin(angle) * self.speed
@@ -104,7 +124,7 @@ class AutoWalker(QObject):
 
 
     def stop_walk(self):
-        """ Detiene el movimiento y restablece el descanso (idle) """
+        """ Detiene el movimiento y restablece la animación """
         self.is_walking = False
         self.walk_timer.stop()
         self.duration_timer.stop()
@@ -121,3 +141,4 @@ class AutoWalker(QObject):
         self.rest_timer.stop()
         self.walk_timer.stop()
         self.duration_timer.stop()
+        
