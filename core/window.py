@@ -117,7 +117,7 @@ class PetWindow(QWidget):
         self.sound_manager.play_sound(self.current_state)
 
         if self.current_state == "idle":
-            self.sound_manager.stop_all_sounds() # Detiene audios largos al volver a idle
+            #self.sound_manager.stop_all_sounds() # Detiene audios largos al volver a idle
             self.action_animator = None
         else:
             anim_data = self.character.get_animation_data(self.current_state)
@@ -291,20 +291,27 @@ class PetWindow(QWidget):
                 right_zone_x = self.width() * 0.65   # Lado derecho (mejilla/accesorio)
                 head_zone_y = self.height() * 0.45   # Altura de la cabeza
 
-                # Si venía de un emote u otro estado y se da clic, detiene la persecución previa
-                if self.is_following:
-                    self.is_following = False
-                    self.follow_timer.stop()
-
                 if click_x <= left_zone_x and click_y <= head_zone_y:
-                    # Clic en la mejilla/accesorio izquierdo, EMOTE1
+                    # Cancelar persecución, si estaba activa
+                    if self.is_following:
+                        self.is_following = False
+                        self.follow_timer.stop()
+                    # Clic en lado izquierdo, EMOTE1
                     self.set_state("emote1")
 
                 elif click_x >= right_zone_x and click_y <= head_zone_y:
-                    # Clic en la mejilla/accesorio derecho, EMOTE3
+                    # Cancelar persecución, si estaba activa
+                    if self.is_following:
+                        self.is_following = False
+                        self.follow_timer.stop()
+                    # Clic en lado derecho, EMOTE3
                     self.set_state("emote3")
 
                 elif click_y <= head_zone_y:
+                    # Cancelar persecución, si estaba activa
+                    if self.is_following:
+                        self.is_following = False
+                        self.follow_timer.stop()
                     # Clic en la Cabeza, PAT
                     self.set_state("pat")
 
@@ -313,9 +320,12 @@ class PetWindow(QWidget):
                     self.is_following = not self.is_following
                     
                     if self.is_following:
-                        self.follow_timer.start(16)
+                        # Iniciar persecución y reproducir sonido "run"
                         self.set_state("runidle")
+                        self.sound_manager.play_sound("run")
+                        self.follow_timer.start(16)
                     else:
+                        # Detener persecución y volver a idle
                         self.follow_timer.stop()
                         if self.underMouse():
                             self.set_state("hover")
