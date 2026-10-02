@@ -117,6 +117,7 @@ class PetWindow(QWidget):
         self.sound_manager.play_sound(self.current_state)
 
         if self.current_state == "idle":
+            self.sound_manager.stop_all_sounds() # Detiene audios largos al volver a idle
             self.action_animator = None
         else:
             anim_data = self.character.get_animation_data(self.current_state)
@@ -227,7 +228,7 @@ class PetWindow(QWidget):
     def enterEvent(self, event):
         """ Solo entra a hover si está en idle o runidle puro, evitando interrumpir animaciones activas """
         self.reset_inactivity_timer() # Reinicia el contador con hover
-        if not self.is_dragging and self.current_state in ["idle", "runidle"] and not self.is_following:
+        if not self.is_dragging and self.current_state == "idle" and not self.is_following:
             self.set_state("hover")
         super().enterEvent(event)
 

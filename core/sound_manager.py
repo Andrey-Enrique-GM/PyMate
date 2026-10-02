@@ -1,5 +1,6 @@
 import os
 import pygame
+from PyQt6.QtCore import QElapsedTimer
 
 
 
@@ -8,11 +9,16 @@ class SoundManager:
         self.character_name = character_name
         self.sounds_dir = os.path.join(assets_dir, "Sounds", character_name)
         
-        # Inicializar el mezclador de pygame sin bloquear el sistema de audio
         if not pygame.mixer.get_init():
             pygame.mixer.init()
 
         self.sounds = {}
+        
+        # Timer para cooldown de hover
+        self.hover_cooldown_timer = QElapsedTimer()
+        self.hover_cooldown_timer.start()
+        self.hover_cooldown_ms = 1000  # Cooldown de 1 segundo
+
         self.load_sounds()
 
 
@@ -32,8 +38,23 @@ class SoundManager:
                     print(f"[SoundManager] Error al cargar {full_path}: {e}")
 
 
+    def stop_all_sounds(self):
+        """ Detiene inmediatamente cualquier canal de audio que esté sonando """
+        if pygame.mixer.get_init():
+            pygame.mixer.stop()
+
+
     def play_sound(self, sound_name: str):
         """ Reproduce el sonido de una acción si existe """
         sound_key = sound_name.lower()
+
         if sound_key in self.sounds:
+            # Control de cooldown exclusivo para el sonido de hover
+            if sound_key == "hover":
+                if self.hover_cooldown_timer.elapsed() < self.hover_cooldown_ms:
+                    return  # Ignora si aún está dentro del tiempo de espera
+                self.hover_cooldown_timer.restart()
+
+            # Detener cualquier audio sonando antes de iniciar el nuevo
+            self.stop_all_sounds()
             self.sounds[sound_key].play()
