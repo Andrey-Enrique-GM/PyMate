@@ -1,14 +1,25 @@
 import os
+import sys
 
+
+
+def get_base_dir():
+    """ Devuelve la ruta base, ya sea ejecutando script .py o el .exe empaquetado """
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 class ConfigManager:
-    def __init__(self, base_assets_path: str = "assets"):
+    def __init__(self, base_assets_path: str = None):
+        if base_assets_path is None:
+            base_assets_path = os.path.join(get_base_dir(), "assets")
+            
         self.assets_path = base_assets_path
+        self.config_file = os.path.join(self.assets_path, "config.txt")
         self.global_config = {}
         self.character_config = {}
         
-        self.config_file = os.path.join(self.assets_path, "config.txt")
         self._load_global_config()
         self.active_character = self.global_config.get("START_CHAR", "GoldShip")
         self._load_character_config()

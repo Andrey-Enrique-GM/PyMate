@@ -1,5 +1,7 @@
 # PyMate ✨
 
+[![Descargar Ejecutable](https://img.shields.io/badge/Descargar-PyMate_v1.0_(Windows)-2ea44f?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Andrey-Enrique-GM/PyMate/releases/download/v1.0.0/PyMate_v1.0.zip)
+
 **PyMate** es una aplicación de escritorio interactiva que trae mascotas virtuales animadas directamente a tu pantalla. Las mascotas cuentan con comportamientos autónomos como caminata independiente, seguimiento de cursor, físicas de arrastre, reproducción de efectos de sonido y reacciones a clics e interacciones según la zona del sprite donde el usuario interactúe.
 
 ## ¿Cómo está hecho?
